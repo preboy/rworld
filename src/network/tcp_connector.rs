@@ -1,4 +1,4 @@
-use std::{io, net::TcpStream};
+use std::net::TcpStream;
 
 pub struct TCPConnector {
     stream: Option<TcpStream>,

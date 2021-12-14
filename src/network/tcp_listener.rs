@@ -15,7 +15,7 @@ where
     F1: FnMut() + Copy + Send + Sync + 'static,
     F2: FnMut() + Copy + Send + Sync + 'static,
     F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
-    F4: FnMut(TcpStream) + Copy + Send + Sync + 'static,
+    F4: Fn(TcpStream) + 'static,
 {
     addr: String,
     r: Arc<AtomicBool>,
@@ -33,7 +33,7 @@ where
     F1: FnMut() + Copy + Send + Sync + 'static,
     F2: FnMut() + Copy + Send + Sync + 'static,
     F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
-    F4: FnMut(TcpStream) + Copy + Send + Sync + 'static,
+    F4: Fn(TcpStream) + 'static,
 {
     pub fn new(addr: String) -> Self {
         Self {
@@ -77,7 +77,7 @@ where
                 let mut cb_error = self.cb_error.clone();
                 //  let mut cb_opened = self.cb_opened.clone();
                 let mut cb_stopped = self.cb_stopped.clone();
-                let mut cb_connected = self.cb_connected.clone();
+                let mut cb_connected = self.cb_connected;
 
                 let h = std::thread::spawn(move || {
                     loop {
