@@ -1,52 +1,43 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    mpsc, Arc,
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread,
+    time::Duration,
 };
-
-use std::thread;
-use std::time::Duration;
 
 pub struct Looper {
     h: Option<thread::JoinHandle<()>>,
-    tx: Option<mpsc::Sender<i32>>,
     r: Arc<AtomicBool>,
 }
 
 impl Looper {
-    pub fn new() -> Looper {
-        Looper {
+    pub fn new() -> Self {
+        Self {
             h: None,
-            tx: None,
             r: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    pub fn run(&mut self) {
-        let (tx, rx) = mpsc::channel();
-        self.tx = Some(tx);
-
+    pub fn run<T>(&mut self, f: T)
+    where
+        T: Fn() + 'static + Send,
+    {
         self.r.store(true, Ordering::SeqCst);
         let r = self.r.clone();
 
         let h = thread::spawn(move || loop {
-            if let Ok(v) = rx.try_recv() {
-                println!("recv values: {}", v);
-            } else {
-                thread::sleep(Duration::from_micros(1));
-            };
+            f();
 
             if !r.load(Ordering::SeqCst) {
                 break;
             };
+
+            thread::sleep(Duration::from_millis(1));
         });
 
         self.h = Some(h);
-    }
-
-    pub fn post(&self, v: i32) {
-        if let Some(tx) = &self.tx {
-            tx.send(v).unwrap();
-        }
     }
 
     pub fn stop(&mut self) {
@@ -56,6 +47,6 @@ impl Looper {
             h.join().unwrap();
         }
 
-        println!("looper stoped");
+        println!("looper stopped");
     }
 }
