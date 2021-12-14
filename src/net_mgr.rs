@@ -11,7 +11,7 @@ impl NetMgr {
     pub fn new() -> Self {
         Self {
             id_seq: 0,
-            sessions: HashMap::<_, _>::new(),
+            sessions: HashMap::new(),
         }
     }
 
@@ -22,7 +22,7 @@ impl NetMgr {
     }
 
     // 新连接
-    pub fn new_connection(&mut self, session: TCPSession) {
+    pub fn new_connection(&mut self, mut session: TCPSession) {
         self.id_seq += 1;
         session.set_id(self.id_seq);
         self.sessions.insert(self.id_seq, session);

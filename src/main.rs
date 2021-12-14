@@ -37,11 +37,13 @@ fn main() -> Result<()> {
 
             let session = TCPSession::new(stream);
 
-            let p = nmgr2.lock().unwrap();
-            let mut n = p.borrow_mut();
-
-            n.new_connection(session);
+            let x = nmgr2.clone();
+            //  let p = nmgr2.lock().unwrap();
+            // let mut n = p.borrow_mut();
+            // n.new_connection(session);
         });
+
+    let x = nmgr2;
 
     listener.start();
 

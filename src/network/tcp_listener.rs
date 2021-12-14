@@ -12,10 +12,10 @@ use std::{
 
 pub struct TCPListener<F1, F2, F3, F4>
 where
-    F1: FnMut() + Copy + Send + 'static,
-    F2: FnMut() + Copy + Send + 'static,
-    F3: FnMut(io::Error) + Copy + Send + 'static,
-    F4: FnMut(TcpStream) + Copy + Send + 'static,
+    F1: FnMut() + Copy + Send + Sync + 'static,
+    F2: FnMut() + Copy + Send + Sync + 'static,
+    F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
+    F4: FnMut(TcpStream) + Copy + Send + Sync + 'static,
 {
     addr: String,
     r: Arc<AtomicBool>,
@@ -30,10 +30,10 @@ where
 
 impl<F1, F2, F3, F4> TCPListener<F1, F2, F3, F4>
 where
-    F1: FnMut() + Copy + Send + 'static,
-    F2: FnMut() + Copy + Send + 'static,
-    F3: FnMut(io::Error) + Copy + Send + 'static,
-    F4: FnMut(TcpStream) + Copy + Send + 'static,
+    F1: FnMut() + Copy + Send + Sync + 'static,
+    F2: FnMut() + Copy + Send + Sync + 'static,
+    F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
+    F4: FnMut(TcpStream) + Copy + Send + Sync + 'static,
 {
     pub fn new(addr: String) -> Self {
         Self {
