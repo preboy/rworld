@@ -1,25 +1,19 @@
 use std::{
-    io,
+    io::{self, ErrorKind},
     net::{TcpListener, TcpStream},
-    sync::{
-        atomic::{self, AtomicBool, Ordering},
-        Arc,
-    },
-    thread,
 };
 
 // ----------------------------------------------------------------------------
 
 pub struct TCPListener<F1, F2, F3, F4>
 where
-    F1: FnMut() + Copy + Send + Sync + 'static,
-    F2: FnMut() + Copy + Send + Sync + 'static,
-    F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
+    F1: Fn() + 'static,
+    F2: Fn() + 'static,
+    F3: Fn(io::Error) + 'static,
     F4: Fn(TcpStream) + 'static,
 {
     addr: String,
-    r: Arc<AtomicBool>,
-    h: Option<thread::JoinHandle<()>>,
+    listener: Option<TcpListener>,
 
     // callback for events
     cb_error: Option<F3>,
@@ -30,16 +24,15 @@ where
 
 impl<F1, F2, F3, F4> TCPListener<F1, F2, F3, F4>
 where
-    F1: FnMut() + Copy + Send + Sync + 'static,
-    F2: FnMut() + Copy + Send + Sync + 'static,
-    F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
+    F1: Fn() + 'static,
+    F2: Fn() + 'static,
+    F3: Fn(io::Error) + 'static,
     F4: Fn(TcpStream) + 'static,
 {
     pub fn new(addr: String) -> Self {
         Self {
             addr,
-            r: Arc::new(AtomicBool::new(true)),
-            h: None,
+            listener: None,
 
             // callback for events
             cb_error: None,
@@ -72,77 +65,62 @@ where
     pub fn start(&mut self) -> bool {
         match TcpListener::bind(&self.addr) {
             Ok(listener) => {
-                let r = self.r.clone();
+                listener.set_nonblocking(true).unwrap();
+                self.listener = Some(listener);
 
-                let mut cb_error = self.cb_error.clone();
-                //  let mut cb_opened = self.cb_opened.clone();
-                let mut cb_stopped = self.cb_stopped.clone();
-                let mut cb_connected = self.cb_connected;
+                if let Some(cb_opened) = &mut self.cb_opened {
+                    cb_opened();
+                };
 
-                let h = std::thread::spawn(move || {
-                    loop {
-                        // listener
-                        match listener.accept() {
-                            // new connection
-                            Ok((stream, _peer_addr)) => {
-                                stream.set_nonblocking(true).unwrap();
-
-                                if let Some(cb_connected) = &mut cb_connected {
-                                    cb_connected(stream);
-                                }
-                            }
-
-                            // error
-                            Err(err) => {
-                                eprintln!("accept failed: err = {}", err);
-
-                                if let Some(cb_error) = &mut cb_error {
-                                    cb_error(err);
-                                }
-                            }
-                        }
-
-                        // quit
-                        if !r.load(atomic::Ordering::SeqCst) {
-                            if let Some(cb_stopped) = &mut cb_stopped {
-                                cb_stopped();
-                            }
-
-                            println!("fuckyou");
-
-                            break;
-                        }
-                    }
-                });
-
-                self.h = Some(h);
+                true
             }
 
             Err(err) => {
                 eprintln!("listen failed: err = {}, addr = {}", err, &self.addr);
-
                 if let Some(cb_error) = &mut self.cb_error {
                     cb_error(err);
                 }
 
-                return false;
+                false
             }
         }
-
-        if let Some(cb_opened) = &mut self.cb_opened {
-            cb_opened();
-        }
-
-        true
     }
 
     pub fn stop(&mut self) {
-        self.r.store(false, Ordering::SeqCst);
+        if let Some(listener) = &mut self.listener {
+            // listener
+        };
 
-        if let Some(h) = self.h.take() {
-            h.join().unwrap();
-        }
+        if let Some(cb_stopped) = &mut self.cb_stopped {
+            cb_stopped();
+        };
 
         println!("tcp server stoped");
+    }
+
+    pub fn update(&mut self) {
+        if let Some(listener) = &self.listener {
+            match listener.accept() {
+                // new connection
+                Ok((stream, _peer_addr)) => {
+                    stream.set_nonblocking(true).unwrap();
+
+                    if let Some(cb_connected) = &self.cb_connected {
+                        cb_connected(stream);
+                    }
+                }
+
+                // error
+                Err(err) => {
+                    if err.kind() != ErrorKind::WouldBlock {
+                        eprintln!("accept failed: err = {}", err);
+
+                        if let Some(cb_error) = &mut self.cb_error {
+                            cb_error(err);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
