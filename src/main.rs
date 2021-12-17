@@ -4,7 +4,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-mod fuck;
 mod looper;
 mod net_mgr;
 mod network;
@@ -12,8 +11,6 @@ mod network;
 use looper::Looper;
 use net_mgr::NetMgr;
 use network::{TCPListener, TCPSession};
-
-use fuck::Fuck;
 
 // type Shared<T> = Arc<Mutex<RefCell<T>>>;
 
@@ -23,26 +20,26 @@ fn main() -> Result<()> {
     let nmgr = Arc::new(Mutex::new(RefCell::new(NetMgr::new())));
 
     let nmgr2 = nmgr.clone();
-    let nmgr3 = nmgr.clone();
-
-    let f = Fuck::new(String::from("haha")).set(move |x| {
-        let p = nmgr3.lock().unwrap();
-        let mut n = p.borrow_mut();
-        n.update();
-    });
-
-    f.start();
 
     // thread listener
-    let mut listener =
-        TCPListener::new(String::from("0.0.0.0:8080")).set_event_connected(move |stream| {
+    let mut listener = TCPListener::new(String::from("0.0.0.0:8080"))
+        .set_event_opened(|| {
+            println!("opened");
+        })
+        .set_event_stopped(|| {
+            println!("stoped");
+        })
+        .set_event_error(|err| {
+            println!("err {}", err);
+        })
+        .set_event_connected(move |stream| {
             println!("on connected: {:?}", stream);
 
             let session = TCPSession::new(stream);
 
             let p = nmgr2.lock().unwrap();
-            // let mut n = p.borrow_mut();
-            // n.new_connection(session);
+            let mut n = p.borrow_mut();
+            n.new_connection(session);
         });
 
     listener.start();
@@ -78,8 +75,6 @@ fn main() -> Result<()> {
     }
 
     println!("server will be close");
-
-    f.stop();
 
     listener.stop();
     looper.stop();

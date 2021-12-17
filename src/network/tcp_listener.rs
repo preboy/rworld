@@ -12,10 +12,10 @@ use std::{
 
 pub struct TCPListener<F1, F2, F3, F4>
 where
-    F1: FnMut() + Copy + Send + Sync + 'static,
-    F2: FnMut() + Copy + Send + Sync + 'static,
-    F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
-    F4: Fn(TcpStream) + 'static,
+    F1: FnMut() + Send + Clone + 'static,
+    F2: FnMut() + Send + Clone + 'static,
+    F3: FnMut(io::Error) + Send + Clone + 'static,
+    F4: FnMut(TcpStream) + Send + Clone + 'static,
 {
     addr: String,
     r: Arc<AtomicBool>,
@@ -30,10 +30,10 @@ where
 
 impl<F1, F2, F3, F4> TCPListener<F1, F2, F3, F4>
 where
-    F1: FnMut() + Copy + Send + Sync + 'static,
-    F2: FnMut() + Copy + Send + Sync + 'static,
-    F3: FnMut(io::Error) + Copy + Send + Sync + 'static,
-    F4: Fn(TcpStream) + 'static,
+    F1: FnMut() + Send + Clone + 'static,
+    F2: FnMut() + Send + Clone + 'static,
+    F3: FnMut(io::Error) + Send + Clone + 'static,
+    F4: FnMut(TcpStream) + Send + Clone + 'static,
 {
     pub fn new(addr: String) -> Self {
         Self {
@@ -75,9 +75,9 @@ where
                 let r = self.r.clone();
 
                 let mut cb_error = self.cb_error.clone();
-                //  let mut cb_opened = self.cb_opened.clone();
+                let mut cb_opened = self.cb_opened.clone();
                 let mut cb_stopped = self.cb_stopped.clone();
-                let mut cb_connected = self.cb_connected;
+                let mut cb_connected = self.cb_connected.clone();
 
                 let h = std::thread::spawn(move || {
                     loop {
