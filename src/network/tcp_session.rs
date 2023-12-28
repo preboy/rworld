@@ -1,4 +1,7 @@
-use std::net::{Shutdown, TcpStream};
+use std::{
+    io::Read,
+    net::{Shutdown, TcpStream},
+};
 
 pub struct TCPSession {
     id: i32,
@@ -45,7 +48,7 @@ impl TCPSession {
         }
 
         if let Some(stream) = &mut self.stream {
-            stream.read_exact()
+            //  stream.read_exact()
         }
     }
 
